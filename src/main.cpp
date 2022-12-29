@@ -6,6 +6,13 @@
 #include "str.h"
 #include <Ticker.h>
 
+//#define TEST_LCD_SHOW
+
+#ifdef TEST_LCD_SHOW
+#define UPDATE_WEATHER_TIME 10
+#else
+#define UPDATE_WEATHER_TIME 30*60
+#endif
 
 // Set the name and password of the wifi to be connected.  配置所连接wifi的名称和密码
 //const char *ssid = "HW_OOXX";
@@ -280,6 +287,8 @@ void setup()
 
   M5.Lcd.setTextSize(2);
   
+#ifndef TEST_LCD_SHOW
+
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) 
   {
@@ -294,14 +303,15 @@ void setup()
 
   // M5.Lcd.clear();  
 
-  
   configTime(8 * 3600, 0, NTP1, NTP2, NTP3);
+
+#endif
 
   M5.Lcd.sleep(); 
   M5.Lcd.wakeup();
   M5.Lcd.clear();
 
-  ticker[0].attach(30*60, WeatherUpdateCallBack);
+  ticker[0].attach(UPDATE_WEATHER_TIME, WeatherUpdateCallBack);
 
   // M5.Speaker.begin(); //初始化扬声器
   // M5.Speaker.tone(661, 1000);    //设定喇叭以661Hz频率响1000ms
@@ -331,21 +341,7 @@ void loop()
     String strTodayNightWeather = "";
     String strTodayCodeDay = "";
     String strTodayCodeNight = "";
-    GetWeather(TodayWeatherData, TomorrowWetherData);
 
-    strTodayDayWeather = TodayWeatherData.weather_day;
-    strTodayNightWeather = TodayWeatherData.weather_night;
-    strTodayHighTemp = TodayWeatherData.high;
-    strTodayLowTemp = TodayWeatherData.low;
-    strTodayCodeDay = TodayWeatherData.weather_code_day;
-    strTodayCodeNight = TodayWeatherData.weather_code_night;
-
-    if (strTodayHighTemp.isEmpty() || strTodayLowTemp.isEmpty() || strTodayDayWeather.isEmpty() || strTodayNightWeather.isEmpty() || strTodayCodeDay.isEmpty() || strTodayCodeNight.isEmpty())
-    {
-      ESP.restart();
-      return;
-    }
-    
     String strTomorrowHighTemp = "";
     String strTomorrowLowTemp = "";
     String strTomorrowDayWeather = "";
@@ -353,12 +349,48 @@ void loop()
     String strTomorrowCodeDay = "";
     String strTomorrowCodeNight = "";
 
-    strTomorrowDayWeather = TomorrowWetherData.weather_day;
-    strTomorrowNightWeather = TomorrowWetherData.weather_night;
-    strTomorrowHighTemp = TomorrowWetherData.high;
-    strTomorrowLowTemp = TomorrowWetherData.low;
-    strTomorrowCodeDay = TomorrowWetherData.weather_code_day;
-    strTomorrowCodeNight = TomorrowWetherData.weather_code_night;
+    #ifndef TEST_LCD_SHOW
+
+      GetWeather(TodayWeatherData, TomorrowWetherData);
+
+      strTodayDayWeather = TodayWeatherData.weather_day;
+      strTodayNightWeather = TodayWeatherData.weather_night;
+      strTodayHighTemp = TodayWeatherData.high;
+      strTodayLowTemp = TodayWeatherData.low;
+      strTodayCodeDay = TodayWeatherData.weather_code_day;
+      strTodayCodeNight = TodayWeatherData.weather_code_night;
+
+      strTomorrowDayWeather = TomorrowWetherData.weather_day;
+      strTomorrowNightWeather = TomorrowWetherData.weather_night;
+      strTomorrowHighTemp = TomorrowWetherData.high;
+      strTomorrowLowTemp = TomorrowWetherData.low;
+      strTomorrowCodeDay = TomorrowWetherData.weather_code_day;
+      strTomorrowCodeNight = TomorrowWetherData.weather_code_night;
+
+    #else
+
+      strTodayHighTemp = "88";
+      strTodayLowTemp = "88";
+      strTodayDayWeather = "Cloudy";
+      strTodayNightWeather = "40";
+      strTodayCodeDay = "3";
+      strTodayCodeNight = "40";
+
+      strTomorrowHighTemp = "66";
+      strTomorrowLowTemp = "66";
+      strTomorrowDayWeather = "Cloudy";
+      strTomorrowNightWeather = "40";
+      strTomorrowCodeDay = "30";
+      strTomorrowCodeNight = "4";
+
+    #endif
+
+    if (strTodayHighTemp.isEmpty() || strTodayLowTemp.isEmpty() || strTodayDayWeather.isEmpty() || strTodayNightWeather.isEmpty() || strTodayCodeDay.isEmpty() || strTodayCodeNight.isEmpty())
+    {
+      ESP.restart();
+      return;
+    }
+    
 
     if (strTomorrowHighTemp.isEmpty() || strTomorrowLowTemp.isEmpty() || strTomorrowDayWeather.isEmpty() || strTomorrowNightWeather.isEmpty() || strTomorrowCodeDay.isEmpty() || strTomorrowCodeNight.isEmpty())
     {
@@ -378,7 +410,15 @@ void loop()
     M5.Lcd.setTextSize(4); 
     int nLowTempPosX = nCNSize*2 + 16; //最低温的X位置 ，是两个中文字的大小加上间隔16, setTextSize=3的时候用displaych显示的中文是 48*48
     int nLowTempPosY = 0;
-    M5.Lcd.drawRect(nLowTempPosX, nLowTempPosY, 320-48, 48*4+10, BLACK);//数字度数开始位置向后清空四行
+    int nClearAreaWidth = 320-48;
+    int nClearAreaHeight = 48*4;
+    M5.Lcd.fillRect(nLowTempPosX, nLowTempPosY, nClearAreaWidth, nClearAreaHeight, BLACK);//数字度数开始位置向后清空四行
+    Serial.printf("Weather Update Clear PosX=%d, PosY=%d, W[%d], H[%d]\n", nLowTempPosX, nLowTempPosY, nClearAreaWidth, nClearAreaHeight);
+
+    // #ifdef TEST_LCD_SHOW  
+    //   delay(3000);
+    // #endif
+
     M5.Lcd.drawString(strLowTemp, nLowTempPosX, nLowTempPosY);
     nTextWidth = M5.Lcd.textWidth(strLowTemp,1);
     displaych.setTextSize(2); //32*32
@@ -501,14 +541,21 @@ void loop()
   /////////////////////////////////显示时间部分/////////////////////////////////////////
   
   //日期
-  //String strDate = "2022-06-23";
+  #ifdef TEST_LCD_SHOW
+    strDate = "2022-11-10";
+  #endif
+
   int nDatePosX = 0;
   int nDatePosY = nCNPosY + 48 + 48 + nCNTodayToTomorrowPosYSpace + 40; //左上角初始高度像素(今日上面的空间高度) + "今日"高度像素 + "明日"高度像素 + 间隔
   M5.Lcd.setTextSize(3);
   M5.Lcd.setTextColor(YELLOW, BLACK);
   M5.Lcd.drawString(strDate, nDatePosX, nDatePosY); //
+  
   //时间
-  //String strTime = "01:30";
+  #ifdef TEST_LCD_SHOW
+    strTime = "01:30";
+  #endif
+
   nTextWidth = M5.Lcd.textWidth(strDate,1);
   int nTimePosX = nTextWidth + 32;
   int nTimePosY = nDatePosY;

@@ -15,7 +15,7 @@ char* strThundershower="雷雨";
 char* strTempTips="福州天气";
 char* strTempFlag="℃";
 char* strTrunFlag="转";
-char* strUnkonw="未知数据";
+char* strUnkonw="未知";
 char* strToday="今日";
 char* strTomorrow="明日";
 
